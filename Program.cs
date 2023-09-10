@@ -62,4 +62,21 @@ app.MapPost("api/topics/{id}/messages", async (AppDbContext context, int id, Mes
     return Results.Ok("Messages has been published");
 });
 
+// Create Subscription
+app.MapPost("api/topics/{id}/subscriptions", async (AppDbContext context, int id, Subscription sub) =>
+{
+    bool topics = await context.Topics.AnyAsync(t => t.Id == id);
+    if (!topics)
+    {
+        return Results.NotFound("Topic not found");
+    }
+
+    sub.TopicId = id;
+
+    await context.Subscriptions.AddAsync(sub);
+    await context.SaveChangesAsync();
+
+    return Results.Created($"api/topics/{id}/subscriptions/{sub.Id}", sub);
+});
+
 app.Run();
