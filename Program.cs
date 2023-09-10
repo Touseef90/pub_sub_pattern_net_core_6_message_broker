@@ -28,4 +28,38 @@ app.MapGet("api/topics", async (AppDbContext context) =>
     return Results.Ok(topics);
 });
 
+// Publish Message
+app.MapPost("api/topics/{id}/messages", async (AppDbContext context, int id, Message message) =>
+{
+    bool topics = await context.Topics.AnyAsync(t => t.Id == id);
+    if (!topics)
+    {
+        return Results.NotFound("Topic not found");
+    }
+
+    var subs = context.Subscriptions.Where(s => s.TopicId == id);
+
+    if (subs.Count() == 0)
+    {
+        return Results.NotFound("Subscription not found");
+    }
+
+    foreach (var sub in subs)
+    {
+        Message msg = new Message
+        {
+            TopicMessage = message.TopicMessage,
+            SubscriptionId = sub.Id,
+            ExpiresAfter = message.ExpiresAfter,
+            MessageStatus = message.MessageStatus
+        };
+
+        await context.Messages.AddAsync(msg);
+    }
+
+    await context.SaveChangesAsync();
+
+    return Results.Ok("Messages has been published");
+});
+
 app.Run();
